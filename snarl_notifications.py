@@ -90,7 +90,7 @@ class ddTaskBarIcon(TaskBarIcon):
   def OnAbout(self, e):
     description = """Snarl Tray Notifications is a companion app to Snarl, the Growl-like notification
 system for Windows. It captures notification messages from all of your system
-tray apps, and re-displays the notifications using Growl's better-looking pop-up           
+tray apps, and re-displays the notifications using Snarl's better-looking pop-up           
 balloons.
 
 Also uses PySnarl (http://www.fullphat.net/snarl)
