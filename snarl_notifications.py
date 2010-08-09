@@ -11,19 +11,30 @@ import PySnarl
 # GUI imports
 import wx
 from wx import TaskBarIcon
+from _winreg import CreateKey, SetValueEx, REG_DWORD, HKEY_CURRENT_USER
 
 # TODO: Clean up you code! GUI code is too ingrained with the logic. (Coded in 4 hours as proof of concept).
 # TODO: Option to disable Windows system tray balloons only when our app is on.
 
 # Settings. Planning on making this available in a Preferences... dialog via pop-up menu
 # For now, they're fixed at these values              
-REFRESH_TIME = 120
-NOTIFY_TIMEOUT = 60
+REFRESH_TIME = 10
+NOTIFY_TIMEOUT = 20
 
 TTS_BALLOON = 0x40
 TTS_ALWAYSTIP = 0x01
+TTM_POP = win32con.WM_USER + 28
 
 class ddTaskBarIcon(TaskBarIcon):
+  def set_system_notifier(self, on):
+    value = 1
+    if on:
+      value = 0
+    value_name = "EnableBalloonTips"
+    subkey = "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    key = CreateKey(HKEY_CURRENT_USER, subkey)
+    SetValueEx(key, value_name, 0, REG_DWORD, value)
+
   def __init__(self, icon, tooltip, frame, app):
     TaskBarIcon.__init__(self)
     self.app = app
@@ -37,7 +48,7 @@ class ddTaskBarIcon(TaskBarIcon):
     title = 'Notification'
     if PySnarl.snGetVersion() != False:
       id = PySnarl.snShowMessage("Notification", buff_str, timeout=NOTIFY_TIMEOUT)
-    
+	      
   def notifier_loop(self):
     counter = 0
     message_list = {}
@@ -65,6 +76,7 @@ class ddTaskBarIcon(TaskBarIcon):
           if buff_str:
             if wnd not in message_list.keys():
               message_list[wnd] = buff_str
+              win32gui.SendMessage(wnd, TTM_POP , 0, 0)
               self.notify_snarl(buff_str, title)
             else:
               if buff_str == message_list[wnd]:
@@ -72,11 +84,12 @@ class ddTaskBarIcon(TaskBarIcon):
                 pass
               else:
                 message_list[wnd] = buff_str
+                win32gui.SendMessage(wnd, TTM_POP , 0, 0)
                 self.notify_snarl(buff_str, title)
         wnd = win32gui.FindWindowEx(0, wnd, 'tooltips_class32', None)
-      time.sleep(1)
-      counter = counter + 1
-      if counter == REFRESH_TIME:
+      time.sleep(0.01)
+      counter = counter + 0.01
+      if counter >= REFRESH_TIME:
         counter = 0
         # Time to reset the message cache
         for key in message_list.keys():
