@@ -7,6 +7,7 @@ import array
 import time
 import threading
 import PySnarl
+import os
 
 # GUI imports
 import wx
@@ -45,9 +46,11 @@ class ddTaskBarIcon(TaskBarIcon):
 	
   def notify_snarl(self, buff_str, title):
     # Title not supported yet
+	# Icon path:
+    icon_path = os.path.join(os.getcwd(), "icon.ico")
     title = 'Notification'
     if PySnarl.snGetVersion() != False:
-      id = PySnarl.snShowMessage("Notification", buff_str, timeout=NOTIFY_TIMEOUT)
+      id = PySnarl.snShowMessage("Notification", buff_str, timeout=NOTIFY_TIMEOUT, iconPath=icon_path)
 	      
   def notifier_loop(self):
     counter = 0
