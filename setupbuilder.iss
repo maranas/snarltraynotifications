@@ -10,12 +10,12 @@ Filename: {userappdata}\Snarl Tray Notifications\Snarl Tray Notifications.exe; F
 [Setup]
 AppCopyright=© 2010 Moises Aranas
 AppName=Snarl Tray Notifications
-AppVerName=Snarl Tray Notifications 0.5
+AppVerName=Snarl Tray Notifications 0.5.2
 CreateAppDir=false
 DisableProgramGroupPage=true
 UsePreviousGroup=false
 DefaultGroupName=Snarl Tray Notifications
 AppendDefaultGroupName=false
 AlwaysUsePersonalGroup=true
-AppVersion=0.5
+AppVersion=0.5.2
 AppPublisher=Moises Aranas
