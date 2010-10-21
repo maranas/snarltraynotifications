@@ -27,6 +27,67 @@ TTS_ALWAYSTIP = 0x01
 TTM_POP = win32con.WM_USER + 28
 TTM_GETTITLE = win32con.WM_USER + 35
 
+# Preference dialog class
+class PrefDialog(wx.Dialog):
+  def __init__(self):
+    wx.Dialog.__init__(self, None, -1, "Preferences", size=(330,150))
+
+    panel = wx.Panel(self, -1)
+    vbox = wx.BoxSizer(wx.VERTICAL)
+
+    timeout_box = wx.BoxSizer(wx.HORIZONTAL)
+    st_text = wx.StaticText(self, -1, label="Display timeout (seconds):")
+    self.tb_timeout = wx.TextCtrl(self, -1, str(NOTIFY_TIMEOUT))
+    timeout_box.AddSpacer((10,10))
+    timeout_box.Add(st_text, 1)
+    timeout_box.Add(self.tb_timeout, 1, wx.LEFT, 5)
+    
+    cache_box = wx.BoxSizer(wx.HORIZONTAL)
+    st2_text = wx.StaticText(self, -1, "Cache refresh time (seconds):")
+    self.tb_cache = wx.TextCtrl(self, -1, str(REFRESH_TIME))
+    cache_box.AddSpacer((10,10))
+    cache_box.Add(st2_text, 1)
+    cache_box.Add(self.tb_cache, 1, wx.LEFT, 5)
+
+    hbox = wx.BoxSizer(wx.HORIZONTAL)
+    okButton = wx.Button(self, -1, 'OK', size=(70, 30))
+    closeButton = wx.Button(self, -1, 'Cancel', size=(70, 30))
+    hbox.Add(okButton, 1)
+    hbox.Add(closeButton, 1, wx.LEFT, 5)
+
+    vbox.AddSpacer((10,10))
+    vbox.Add(timeout_box)
+    vbox.AddSpacer((10,10))
+    vbox.Add(cache_box)
+    vbox.AddSpacer((10,10))
+    vbox.Add(hbox, 1, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 10)
+
+    self.SetSizer(vbox)
+    self.Bind(wx.EVT_BUTTON, self.OnOk, okButton)
+    self.Bind(wx.EVT_BUTTON, self.OnCancel, closeButton)
+    
+  def OnOk(self, e):
+    global NOTIFY_TIMEOUT, REFRESH_TIME
+    timeout_value = self.tb_timeout.GetValue()
+    refresh_value = self.tb_cache.GetValue()
+    err = 0
+    if timeout_value.isdigit():
+      if int(timeout_value) > 0:
+        NOTIFY_TIMEOUT = int(timeout_value)
+    else:
+      err = 1
+    if refresh_value.isdigit():
+      if int(refresh_value) > 0:
+        REFRESH_TIME = int(refresh_value)
+    else:
+      err = 1
+    if err != 0:
+      wx.MessageBox("You entered invalid values. The changes won't be saved", "Error")
+    self.Close()
+  
+  def OnCancel(self, e):
+    self.Close()
+
 class ddTaskBarIcon(TaskBarIcon):
 #  def set_system_notifier(self, on):
 #    value = 1
@@ -160,13 +221,20 @@ THE SOFTWARE."""
 
     wx.AboutBox(info)
     
+  def OnPref(self, e):
+    pref_dialog = PrefDialog()
+    pref_dialog.ShowModal()
+    pref_dialog.Destroy()
+    
   def CreatePopupMenu(self):
     self.popupmenu = wx.Menu()
     about_item = self.popupmenu.Append(-1, "About Snarl Tray Notifications")
+    preferences_item = self.popupmenu.Append(-1, "Preferences...")
     self.popupmenu.AppendSeparator()
     quit_item = self.popupmenu.Append(-1, "Quit")
     self.Bind(wx.EVT_MENU, self.OnQuit, quit_item)
     self.Bind(wx.EVT_MENU, self.OnAbout, about_item)
+    self.Bind(wx.EVT_MENU, self.OnPref, preferences_item)
     return self.popupmenu
 	
 app = wx.App(False, filename="log.txt")
@@ -174,4 +242,24 @@ frame = wx.Frame(None, -1, 'Snarl Tray Notifications')
 iconFile = "icon.ico"
 icon_handle = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
 app.trayicon = ddTaskBarIcon(icon_handle, "Snarl Tray Notifications", frame, app)
+if not os.path.exists("settings.txt"):
+  settings = open("settings.txt", "w")
+  settings.write(str(REFRESH_TIME) + "\n")
+  settings.write(str(NOTIFY_TIMEOUT) + "\n")
+  settings.close()
+print "Loading settings"
+settings = open("settings.txt", "r")
+r_t = settings.readline().rstrip().lstrip()
+if r_t.isdigit():
+  REFRESH_TIME = int(r_t)
+n_t = settings.readline().rstrip().lstrip()
+if n_t.isdigit():
+  NOTIFY_TIMEOUT = int(n_t)
+settings.close()
+
 app.MainLoop()
+print "Saving settings"
+settings = open("settings.txt", "w")
+settings.write(str(REFRESH_TIME) + "\n")
+settings.write(str(NOTIFY_TIMEOUT) + "\n")
+settings.close()
