@@ -8,11 +8,11 @@ import time
 import threading
 import PySnarl
 import os
+import commctrl
 
 # GUI imports
 import wx
 from wx import TaskBarIcon
-from _winreg import CreateKey, SetValueEx, REG_DWORD, HKEY_CURRENT_USER
 
 # TODO: Clean up you code! GUI code is too ingrained with the logic. (Coded in 4 hours as proof of concept).
 # TODO: Option to disable Windows system tray balloons only when our app is on.
@@ -25,16 +25,17 @@ NOTIFY_TIMEOUT = 20
 TTS_BALLOON = 0x40
 TTS_ALWAYSTIP = 0x01
 TTM_POP = win32con.WM_USER + 28
+TTM_GETTITLE = win32con.WM_USER + 35
 
 class ddTaskBarIcon(TaskBarIcon):
-  def set_system_notifier(self, on):
-    value = 1
-    if on:
-      value = 0
-    value_name = "EnableBalloonTips"
-    subkey = "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-    key = CreateKey(HKEY_CURRENT_USER, subkey)
-    SetValueEx(key, value_name, 0, REG_DWORD, value)
+#  def set_system_notifier(self, on):
+#    value = 1
+#    if on:
+#      value = 0
+#    value_name = "EnableBalloonTips"
+#    subkey = "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+#    key = CreateKey(HKEY_CURRENT_USER, subkey)
+#    SetValueEx(key, value_name, 0, REG_DWORD, value)
 
   def __init__(self, icon, tooltip, frame, app):
     TaskBarIcon.__init__(self)
@@ -44,13 +45,14 @@ class ddTaskBarIcon(TaskBarIcon):
     self.quitting = False
     threading.Thread(target=self.notifier_loop).start()
 	
-  def notify_snarl(self, buff_str, title):
+  def notify_snarl(self, buff_str, title, wnd):
     # Title not supported yet
-	# Icon path:
+	  # Icon path:
     icon_path = os.path.join(os.getcwd(), "icon.ico")
     title = 'Notification'
     if PySnarl.snGetVersion() != False:
-      id = PySnarl.snShowMessage("Notification", buff_str, timeout=NOTIFY_TIMEOUT, iconPath=icon_path)
+      id = PySnarl.snShowMessage("Notification", buff_str, timeout=NOTIFY_TIMEOUT, iconPath=icon_path,
+	                             replyWindow=wnd, replyMsg=win32con.WM_LBUTTONDOWN) # This isn't working; try TTM_RELAYEVENT
 	      
   def notifier_loop(self):
     counter = 0
@@ -75,12 +77,13 @@ class ddTaskBarIcon(TaskBarIcon):
           addrText = buff_info[0]
           win32gui.SendMessage(wnd, win32con.WM_GETTEXT, buff_info[1], buff_info[0])
           buff_str =  buff.tostring().lstrip().rstrip().lstrip('\x00').rstrip('\x00')
-          title = win32gui.GetWindowText(wnd).lstrip().rstrip().lstrip('\x00').rstrip('\x00')
+          title = "Notification"
+
           if buff_str:
             if wnd not in message_list.keys():
               message_list[wnd] = buff_str
               win32gui.SendMessage(wnd, TTM_POP , 0, 0)
-              self.notify_snarl(buff_str, title)
+              self.notify_snarl(buff_str, title, wnd)
             else:
               if buff_str == message_list[wnd]:
                 # don't print it. Wait for next refresh.
@@ -88,7 +91,7 @@ class ddTaskBarIcon(TaskBarIcon):
               else:
                 message_list[wnd] = buff_str
                 win32gui.SendMessage(wnd, TTM_POP , 0, 0)
-                self.notify_snarl(buff_str, title)
+                self.notify_snarl(buff_str, title, wnd)
         wnd = win32gui.FindWindowEx(0, wnd, 'tooltips_class32', None)
       time.sleep(0.01)
       counter = counter + 0.01
@@ -166,7 +169,7 @@ THE SOFTWARE."""
     self.Bind(wx.EVT_MENU, self.OnAbout, about_item)
     return self.popupmenu
 	
-app = wx.App()
+app = wx.App(False, filename="log.txt")
 frame = wx.Frame(None, -1, 'Snarl Tray Notifications')
 iconFile = "icon.ico"
 icon_handle = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
